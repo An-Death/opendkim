@@ -130,7 +130,7 @@ const (
 
 // Lib is a dkim library handle
 type Lib struct {
-	lib *C.struct_DKIM_LIB
+	lib *C.DKIM_LIB
 	mtx sync.Mutex
 }
 
@@ -156,7 +156,7 @@ func (lib *Lib) Options(op Op, opt Option, ptr unsafe.Pointer, size uintptr) {
 }
 
 // Close closes the dkim lib
-func (lib *Lib) Close() {
+func (lib *Lib) Close() error {
 	lib.mtx.Lock()
 	defer lib.mtx.Unlock()
 
@@ -164,6 +164,7 @@ func (lib *Lib) Close() {
 		C.dkim_close(lib.lib)
 		lib.lib = nil
 	}
+	return nil
 }
 
 // Dkim handle
