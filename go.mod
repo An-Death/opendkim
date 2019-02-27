@@ -1,1 +1,1 @@
-module github.com/An-Death/opendkim
+module github.com/an-death/opendkim
