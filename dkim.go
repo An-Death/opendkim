@@ -3,8 +3,8 @@
 package opendkim
 
 /*
-#cgo LDFLAGS: -Wl,-rpath-link,./deps/lib  -lopendkim
-#cgo CFLAGS: -g -O2 -Wno-error -I./deps/include/
+#cgo LDFLAGS: -Wl,-rpath-link,./include/lib  -lopendkim
+#cgo CFLAGS: -g -O2 -Wno-error -I./include/
 
 
 #include <stdio.h>
@@ -142,10 +142,23 @@ func Init() *Lib {
 	if lib.lib == nil {
 		panic("could not init libopendkim")
 	}
+
+	lib.addIgnoreHeaders()
 	runtime.SetFinalizer(lib, func(l *Lib) {
 		l.Close()
 	})
 	return lib
+}
+
+//add ignored headers
+func (lib *Lib) addIgnoreHeaders() {
+	ignoreHeaders := unsafe.Pointer(&C.dkim_should_not_signhdrs)
+	lib.Options(
+		SetOpt,
+		OptionSKIPHDRS,
+		ignoreHeaders,
+		unsafe.Sizeof(ignoreHeaders),
+	)
 }
 
 // Options sets or gets library options
