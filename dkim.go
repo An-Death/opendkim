@@ -3,8 +3,9 @@
 package opendkim
 
 /*
-#cgo LDFLAGS: -L/usr/local/opt/opendkim/lib -lopendkim
-#cgo CFLAGS: -g -O2 -Wno-error -I/opt/local/include/opendkim/ -I/usr/include/opendkim/
+#cgo LDFLAGS: -Wl,-rpath-link,./deps/lib  -lopendkim
+#cgo CFLAGS: -g -O2 -Wno-error -I./deps/include/
+
 
 #include <stdio.h>
 #include <stdlib.h>
