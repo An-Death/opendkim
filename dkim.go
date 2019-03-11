@@ -141,10 +141,21 @@ func Init() *Lib {
 	if lib.lib == nil {
 		panic("could not init libopendkim")
 	}
+	lib.setIgnoreHeaders()
 	runtime.SetFinalizer(lib, func(l *Lib) {
 		l.Close()
 	})
 	return lib
+}
+
+func (lib *Lib) setIgnoreHeaders() {
+	ignoreHeaders := unsafe.Pointer(&C.dkim_should_not_signhdrs)
+	lib.Options(
+		SetOpt,
+		OptionSKIPHDRS,
+		ignoreHeaders,
+		unsafe.Sizeof(ignoreHeaders),
+	)
 }
 
 // Options sets or gets library options
