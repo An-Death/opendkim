@@ -141,29 +141,19 @@ func Init() *Lib {
 	if lib.lib == nil {
 		panic("could not init libopendkim")
 	}
-	lib.setIgnoreHeaders()
 	runtime.SetFinalizer(lib, func(l *Lib) {
 		l.Close()
 	})
 	return lib
 }
 
-func (lib *Lib) setIgnoreHeaders() {
-	ignoreHeaders := unsafe.Pointer(&C.dkim_should_not_signhdrs)
-	lib.Options(
-		SetOpt,
-		OptionSKIPHDRS,
-		ignoreHeaders,
-		unsafe.Sizeof(ignoreHeaders),
-	)
-}
-
 // Options sets or gets library options
-func (lib *Lib) Options(op Op, opt Option, ptr unsafe.Pointer, size uintptr) {
+func (lib *Lib) Options(op Op, opt Option, ptr unsafe.Pointer, size uintptr) Status {
+	var status Status
 	lib.mtx.Lock()
 	defer lib.mtx.Unlock()
-
-	C.dkim_options(lib.lib, C.int(op), C.dkim_opts_t(opt), ptr, C.size_t(size))
+	status = Status(C.dkim_options(lib.lib, C.int(op), C.dkim_opts_t(opt), ptr, C.size_t(size)))
+	return status
 }
 
 // Close closes the dkim lib
@@ -238,13 +228,13 @@ func (d *Dkim) Sign(r io.Reader) ([]byte, error) {
 	if stat != StatusOK {
 		return nil, stat
 	}
-
-	sigHdr, stat := d.GetSigHdr()
+	sigHdr := make([]byte, 1024)
+	sigHdr, stat = d.GetSigHdr(sigHdr)
 	if stat != StatusOK {
 		return nil, stat
 	}
 
-	hdr.WriteString(`DKIM-Signature: ` + sigHdr + "\r\n\r\n")
+	hdr.WriteString(`DKIM-Signature: ` + string(sigHdr) + "\r\n\r\n")
 
 	var out bytes.Buffer
 	io.Copy(&out, hdr)
@@ -329,17 +319,21 @@ func (d *Dkim) Eom(testKey *bool) Status {
 // }
 
 // GetSigHdr computes the signature header for a message.
-func (d *Dkim) GetSigHdr() (string, Status) {
-	var buf = make([]byte, 1024)
+
+func (d *Dkim) GetSigHdr(buf []byte) ([]byte, Status) {
+	if buf == nil {
+		buf = make([]byte, 1024)
+	}
 	stat := Status(C.dkim_getsighdr(d.dkim, (*C.u_char)(unsafe.Pointer(&buf[0])), C.size_t(len(buf)), C.size_t(0)))
 	if stat != StatusOK {
-		return "", stat
+		return nil, stat
 	}
+
 	i := bytes.Index(buf, []byte{0x0})
 	if i >= 0 {
-		return string(buf[:i]), stat
+		return buf[:i], stat
 	}
-	return string(buf), stat
+	return buf, stat
 }
 
 // GetSignature returns the signature.
