@@ -2,7 +2,6 @@ package opendkim
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 )
 
@@ -30,7 +29,7 @@ const (
 //
 // odktest._domainkey.erikk.org IN TXT "k=rsa\; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtVt0PPhhNRO4hgbDPyS2BsoiHslcq3TFe4jYaTntjh47U2wH5QbdGXke+zRQ14PT5CNU9nJg48+tRjSOgKR/Bu+D5XmNbB+pNYEoafKDZky8BHRthQ6hyAbhF9QypDkvzavRENLK68M01IfGA2l3CpClyfMs8/gkB0Grp9tQSSMVQdo5Cse93ikLM22MggilCeFqAVc5d2ATC0gT90edq46ImzOQk10VZ8avJx2bu/Sve+3GLirppB0/gXga/80i3NNIlHq0S4LeMScIQxXCY4c6/zfCiLKKm57aXLClMYPivi/TpfwaEWPbB/cRmpy3ZfLlAMA4LO+7+iJ1dy5aCQIDAQAB"
 //
-var testKey = `-----BEGIN RSA PRIVATE KEY-----
+const testKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAtVt0PPhhNRO4hgbDPyS2BsoiHslcq3TFe4jYaTntjh47U2wH
 5QbdGXke+zRQ14PT5CNU9nJg48+tRjSOgKR/Bu+D5XmNbB+pNYEoafKDZky8BHRt
 hQ6hyAbhF9QypDkvzavRENLK68M01IfGA2l3CpClyfMs8/gkB0Grp9tQSSMVQdo5
@@ -105,7 +104,7 @@ func TestSignAndVerify(t *testing.T) {
 		SignRSASHA1,
 		-1,
 	)
-	if stat != StatusOK {
+	if !stat.IsOk() {
 		t.Fatal(stat)
 	}
 	if d == nil {
@@ -114,11 +113,11 @@ func TestSignAndVerify(t *testing.T) {
 
 	process(msgHdr, msgBody, d, t)
 
-	h, stat := d.GetSigHdr()
+	h, stat := d.GetSigHdr(make([]byte, 1024, 1024))
 	if stat != StatusOK {
 		t.Fatal(stat)
 	}
-	if !strings.HasPrefix(h, "v=1") {
+	if !bytes.HasPrefix(h, []byte("v=1")) {
 		t.Fatal(h)
 	}
 
@@ -130,7 +129,7 @@ func TestSignAndVerify(t *testing.T) {
 	for k, v := range msgHdr {
 		hdr[k] = v
 	}
-	hdr["DKIM-Signature"] = h
+	hdr["DKIM-Signature"] = string(h)
 
 	t.Log(string(createMsg(hdr, msgBody)))
 
@@ -227,4 +226,16 @@ func TestSignAndVerifyHelper(t *testing.T) {
 	if stat != StatusOK {
 		t.Fatal(stat)
 	}
+}
+
+func TestStatus_IsOk(t *testing.T) {
+	var badStatus = Status(StatusBADSIG)
+	var okStatus = Status(StatusOK)
+	if badStatus.IsOk() {
+		t.Error(badStatus, "couldn't be OK")
+	}
+	if !okStatus.IsOk() {
+		t.Error(okStatus, "must be OK")
+	}
+
 }

@@ -296,6 +296,10 @@ func (d *Dkim) Eoh() Status {
 
 // Body processes the message body.
 func (d *Dkim) Body(data []byte) Status {
+	// for 0 size or nil body => do nothing
+	if data == nil || len(data) == 0 {
+		return StatusOK
+	}
 	return Status(C.dkim_body(d.dkim, (*C.u_char)(unsafe.Pointer(&data[0])), C.size_t(len(data))))
 }
 
@@ -394,6 +398,9 @@ func getErr(s C.DKIM_STAT) string {
 
 type Status int
 
+func (s Status) IsOk() bool {
+	return s == StatusOK
+}
 func (s Status) String() string {
 	return fmt.Sprintf("%d: %s", s, C.GoString(C.dkim_getresultstr(C.DKIM_STAT(s))))
 }
