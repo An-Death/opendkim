@@ -128,6 +128,8 @@ const (
 	SetOpt Op = 1
 )
 
+const SignatureInitialPadding = 16
+
 // Lib is a dkim library handle
 type Lib struct {
 	lib *C.DKIM_LIB
@@ -328,7 +330,7 @@ func (d *Dkim) GetSigHdr(buf []byte) ([]byte, Status) {
 	if buf == nil {
 		buf = make([]byte, 1024)
 	}
-	stat := Status(C.dkim_getsighdr(d.dkim, (*C.u_char)(unsafe.Pointer(&buf[0])), C.size_t(len(buf)), C.size_t(0)))
+	stat := Status(C.dkim_getsighdr(d.dkim, (*C.u_char)(unsafe.Pointer(&buf[0])), C.size_t(len(buf)), SignatureInitialPadding))
 	if stat != StatusOK {
 		return nil, stat
 	}
